@@ -10,6 +10,8 @@ on:
 jobs:
   scrape-and-enhance:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # Required to push commits
     
     steps:
       - name: Checkout repository
@@ -49,8 +51,9 @@ jobs:
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add enhanced_fund_data.json
-          git diff --staged --quiet || (git commit -m "Update enhanced fund data [skip ci]" && git push)
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          if ! git diff --staged --quiet; then
+            git commit -m "Update enhanced fund data [skip ci]"
+            git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git HEAD:main
+          fi
 
 
