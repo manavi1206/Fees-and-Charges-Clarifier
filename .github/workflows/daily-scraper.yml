@@ -34,6 +34,14 @@ jobs:
         run: |
           pip install -r requirements.txt
       
+      - name: Sync with remote before generating
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git fetch origin main
+          git checkout main
+          git reset --hard origin/main
+      
       - name: Run scraper
         run: |
           python3 scraper_complete.py
@@ -51,12 +59,7 @@ jobs:
       
       - name: Commit and push if changed
         run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
           git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
-          git fetch origin
-          git checkout main
-          git reset --hard origin/main
           git add enhanced_fund_data.json
           if ! git diff --staged --quiet; then
             git commit -m "Update enhanced fund data [skip ci]"
