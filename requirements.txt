@@ -7,3 +7,5 @@ requests
 pandas
 rich
 beautifulsoup4
+selenium
+webdriver-manager
