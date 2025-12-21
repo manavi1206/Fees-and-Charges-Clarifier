@@ -1,0 +1,9 @@
+pydantic==2.6.1
+google-generativeai
+tenacity
+structlog
+markdownify
+requests
+pandas
+rich
+beautifulsoup4
