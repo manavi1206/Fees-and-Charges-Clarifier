@@ -43,7 +43,15 @@ def setup_driver():
     chrome_options.add_argument("--disable-dev-shm-usage")
     chrome_options.add_argument("user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36")
     
-    service = Service(ChromeDriverManager().install())
+    import os
+    # Use system Chrome on GitHub Actions, ChromeDriverManager locally
+    if os.environ.get('GITHUB_ACTIONS'):
+        # On GitHub Actions, use system Chrome
+        chrome_options.binary_location = '/usr/bin/chromium-browser'
+        service = Service('/usr/bin/chromedriver')
+    else:
+        # Local development
+        service = Service(ChromeDriverManager().install())
     driver = webdriver.Chrome(service=service, options=chrome_options)
     return driver
 
