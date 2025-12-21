@@ -53,6 +53,7 @@ jobs:
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
+          git pull --rebase origin main
           git add enhanced_fund_data.json
           if ! git diff --staged --quiet; then
             git commit -m "Update enhanced fund data [skip ci]"
