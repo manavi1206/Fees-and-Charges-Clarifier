@@ -1,0 +1,851 @@
+{
+  "name": "Workflow 1: Smart Finance Director",
+  "nodes": [
+    {
+      "parameters": {
+        "public": true,
+        "initialMessages": "Hi there! 👋\nHow can I assist you today?",
+        "options": {
+          "responseMode": "responseNodes"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        -16656,
+        2688
+      ],
+      "id": "e4c6358d-37f0-44db-8ee9-e87e358f0c39",
+      "name": "When chat message received",
+      "webhookId": "1b7ca1b9-35ec-4227-a232-924bc41084c9"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "7b281663-1972-481e-86ca-9e4c187038a5",
+              "leftValue": "={{ $json.compliant }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -15856,
+        2704
+      ],
+      "id": "32e53e8d-4764-4d1d-b6c2-540f0e1199f5",
+      "name": "If complaint"
+    },
+    {
+      "parameters": {
+        "message": "={{ $json.suggested_response }}",
+        "waitUserReply": false,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chat",
+      "typeVersion": 1,
+      "position": [
+        -15568,
+        2544
+      ],
+      "id": "d8ae76d3-e726-427c-a196-05c374294740",
+      "name": "Respond to Chat"
+    },
+    {
+      "parameters": {
+        "contextWindowLength": 20
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        -16304,
+        2928
+      ],
+      "id": "f2caae47-adb2-4c8b-aee7-c10f690b258d",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Output Parser').item.json.original_query }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You are a Smart Finance Director at Groww, specializing in HDFC mutual funds.\n\nPERSONALITY:\n- Professional, friendly, and conversational\n- Explain complex concepts simply\n- Proactive in offering helpful context\n- Maintain SEBI compliance (no advice/recommendations)\n- Use \"I\" to refer to yourself and \"you\" for the user\n\nAVAILABLE HDFC FUNDS (19 total):\n\n**EQUITY FUNDS (14):**\n1. HDFC Mid Cap Fund (recognize: \"mid cap\", \"midcap\")\n2. HDFC Focused Fund (recognize: \"focused\", \"focus\")\n3. HDFC Flexi Cap Fund (recognize: \"flexi cap\", \"flexicap\", \"equity fund\")\n4. HDFC ELSS Tax Saver Fund (recognize: \"ELSS\", \"tax saver\", \"elss fund\")\n5. HDFC Retirement Savings Fund Equity Plan (recognize: \"retirement\", \"retirement equity\")\n6. HDFC Large Cap Fund (recognize: \"large cap\", \"largecap\")\n7. HDFC Infrastructure Fund (recognize: \"infrastructure\", \"infra\")\n8. HDFC Multi Cap Fund (recognize: \"multi cap\", \"multicap\")\n9. HDFC Small Cap Fund (recognize: \"small cap\", \"smallcap\")\n10. HDFC Large and Mid Cap Fund (recognize: \"large and mid\", \"large mid\")\n11. HDFC NIFTY50 Equal Weight Index Fund (recognize: \"nifty 50\", \"nifty50\", \"equal weight\")\n12. HDFC Banking & Financial Services Fund (recognize: \"banking\", \"financial services\", \"BFSI\")\n13. HDFC NIFTY 100 Equal Weight Index Fund (recognize: \"nifty 100\", \"nifty100\")\n14. HDFC NIFTY Next 50 Index Fund (recognize: \"nifty next 50\", \"next 50\")\n\n**HYBRID FUNDS (2):**\n15. HDFC Balanced Advantage Fund (recognize: \"balanced\", \"balanced advantage\", \"BAF\")\n16. HDFC Multi Asset Active FoF (recognize: \"multi asset\", \"asset allocation\")\n\n**DEBT FUNDS (3):**\n17. HDFC Income Plus Arbitrage Active FoF (recognize: \"income plus\", \"arbitrage\")\n18. HDFC Short Term Debt Fund (recognize: \"short term\", \"short duration\")\n19. HDFC Credit Risk Debt Fund (recognize: \"credit risk\", \"corporate debt\")\n\nSUPPORTED QUERY TYPES (13 intents):\n\n1. **GREETING** - \"hi\", \"hello\", \"hey\", \"good morning\", \"namaste\"\n2. **FUND_LIST** - \"which funds\", \"list funds\", \"show all funds\", \"what funds\", \"what all funds\", \"available funds\", \"funds list\", \"tell me funds\"\n3. **GRATITUDE** - \"thank you\", \"thanks\", \"appreciate it\"\n4. **EXIT_LOAD** - \"exit load\", \"redemption charges\"\n5. **TAXATION** - \"tax\", \"STCG\", \"LTCG\", \"capital gains\"\n6. **SIP_CHARGES** - \"SIP charges\", \"minimum SIP\"\n7. **EXPENSE_RATIO** - \"expense ratio\", \"management fee\", \"TER\"\n8. **LOCK_IN_PERIOD** - \"lock-in\", \"lock in period\"\n9. **RETURNS** - \"returns\", \"performance\", \"CAGR\"\n10. **FUND_RATING** - \"rating\", \"how good is\", \"star rating\"\n11. **AUM** - \"fund size\", \"AUM\", \"assets under management\"\n12. **FUND_INFO** - \"what type\", \"category\", \"tell me about\"\n13. **NAV** - \"NAV\", \"net asset value\", \"current price\"\n\nFUND NAME EXTRACTION RULES:\n1. If user mentions \"ELSS\" → \"HDFC ELSS Tax Saver Fund\"\n2. If user mentions partial name like \"Mid Cap\" → \"HDFC Mid Cap Fund\"\n3. If user mentions \"Balanced\" → \"HDFC Balanced Advantage Fund\"\n4. If user mentions \"Banking\" or \"financial services\" → \"HDFC Banking & Financial Services Fund\"\n5. If NO fund mentioned → fund_name = null\n\nCLARIFICATION LOGIC:\n\n**NO CLARIFICATION NEEDED (needs_clarification = false):**\n- GREETING, FUND_LIST, GRATITUDE intents\n- Any intent where ALL required info is present\n\n**CLARIFICATION NEEDED (needs_clarification = true):**\n- If fund_name = null, ask: \"Which HDFC fund would you like to know about?\"\n- If EXIT_LOAD and holding_period unknown, ask: \"What is your holding period?\"\n- If TAXATION and tax_term unknown, ask: \"Short-term (<1 year) or long-term (>1 year)?\"\n- If RETURNS and time_period unknown, ask: \"Which time period: 1Y, 3Y, or 5Y?\"\n\nRESPONSE FORMAT - Return ONLY valid JSON:\n\n{\n  \"intent\": \"GREETING\" | \"FUND_LIST\" | \"GRATITUDE\" | \"EXIT_LOAD\" | \"TAXATION\" | \"SIP_CHARGES\" | \"EXPENSE_RATIO\" | \"LOCK_IN_PERIOD\" | \"RETURNS\" | \"FUND_RATING\" | \"AUM\" | \"FUND_INFO\" | \"NAV\" | null,\n  \"fund_name\": \"extracted fund name or null\",\n  \"needs_clarification\": true | false,\n  \"clarification_question\": \"question to ask\" | null,\n  \"clarification_context\": {\n    \"fund_mentioned\": true | false,\n    \"sip_or_lumpsum\": \"unknown\" | \"sip\" | \"lumpsum\",\n    \"holding_period\": \"unknown\" | \"<6m\" | \"6m-1yr\" | \">1yr\",\n    \"tax_term\": \"unknown\" | \"short_term\" | \"long_term\",\n    \"time_period\": \"unknown\" | \"1y\" | \"3y\" | \"5y\"\n  }\n}\n\nAnalyze the user query and respond with the JSON object."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        -15632,
+        2848
+      ],
+      "id": "169994d3-a902-4a01-a6d7-6fcaebae8748",
+      "name": "AI Agent1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const text = $input.item.json.output || $input.item.json.response || '';\nlet parsed;\n\ntry {\n  const jsonMatch = text.match(/\\{[\\s\\S]*\\}/);\n  if (jsonMatch) {\n    parsed = JSON.parse(jsonMatch[0]);\n  } else {\n    parsed = JSON.parse(text);\n  }\n} catch (e) {\n  const originalQuery = $('When chat message received').item.json.chatInput || '';\n  console.log('Failed to parse JSON from AI response:', text);\n  return {\n    json: {\n      error: 'Failed to parse intent response',\n      raw: text,\n      intent: null,\n      fund_name: null,\n      needs_clarification: true,\n      clarification_question: 'I apologize, but I need to clarify your request. Could you please rephrase your question about HDFC mutual funds?',\n      clarification_context: {},\n      original_query: originalQuery\n    }\n  };\n}\n\n// Validate intent is one of the valid intents\nconst validIntents = [\n  'GREETING', 'FUND_LIST', 'GRATITUDE', 'EXIT_LOAD', 'TAXATION', \n  'SIP_CHARGES', 'EXPENSE_RATIO', 'LOCK_IN_PERIOD', 'RETURNS', \n  'FUND_RATING', 'AUM', 'FUND_INFO', 'NAV'\n];\n\nif (!parsed.intent || !validIntents.includes(parsed.intent)) {\n  const originalQuery = $('When chat message received').item.json.chatInput || '';\n  console.log('Invalid or missing intent from AI response:', parsed.intent);\n  console.log('Raw AI output:', text);\n  return {\n    json: {\n      error: 'Invalid intent returned',\n      raw: text,\n      intent: null,\n      fund_name: parsed.fund_name || null,\n      needs_clarification: true,\n      clarification_question: 'I apologize, but I need to clarify your request. Could you please rephrase your question about HDFC mutual funds?',\n      clarification_context: parsed.clarification_context || {},\n      original_query: originalQuery\n    }\n  };\n}\n\nreturn {\n  json: {\n    intent: parsed.intent || null,\n    fund_name: parsed.fund_name || null,\n    needs_clarification: parsed.needs_clarification || false,\n    clarification_question: parsed.clarification_question || null,\n    clarification_context: parsed.clarification_context || {},\n    original_query: $('When chat message received').item.json.chatInput || ''\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -15280,
+        2848
+      ],
+      "id": "7bce76e8-0f06-4387-be4d-a2409a894326",
+      "name": "Parse Intent Response"
+    },
+    {
+      "parameters": {
+        "dataType": "string",
+        "value1": "={{ $json.intent }}",
+        "rules": {
+          "rules": [
+            {
+              "value2": "GREETING"
+            },
+            {
+              "value2": "FUND_LIST",
+              "output": 1
+            },
+            {
+              "value2": "GRATITUDE",
+              "output": 2
+            }
+          ]
+        },
+        "fallbackOutput": 3
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [
+        -15056,
+        2816
+      ],
+      "id": "33a86ecc-3673-488a-9b10-430b9a741240",
+      "name": "Route by Intent"
+    },
+    {
+      "parameters": {
+        "message": "Hello! I'm your Smart Finance Assistant at Groww, specializing in HDFC mutual funds. 🙂\n\nI can help you understand:\n• Exit loads & redemption charges\n• Tax implications (STCG/LTCG)\n• SIP charges & minimum amounts\n• Expense ratios & management fees\n• Lock-in periods\n• Returns & performance history\n• Fund ratings & risk levels\n• Fund size (AUM)\n• NAV & fund categories\n• And much more!\n\nWe cover **19 HDFC funds** across Equity, Hybrid, and Debt categories. What would you like to know today?",
+        "waitUserReply": false,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chat",
+      "typeVersion": 1,
+      "position": [
+        -14832,
+        2560
+      ],
+      "id": "ebf1dda2-7d03-49ad-b883-a36f6844cbd0",
+      "name": "Respond: Greeting"
+    },
+    {
+      "parameters": {
+        "message": "Here are the **19 HDFC funds** I can help with:\n\n**🔷 EQUITY FUNDS (14):**\n1. HDFC Mid Cap Fund\n2. HDFC Focused Fund\n3. HDFC Flexi Cap Fund\n4. HDFC ELSS Tax Saver Fund\n5. HDFC Retirement Savings Fund (Equity Plan)\n6. HDFC Large Cap Fund\n7. HDFC Infrastructure Fund\n8. HDFC Multi Cap Fund\n9. HDFC Small Cap Fund\n10. HDFC Large and Mid Cap Fund\n11. HDFC NIFTY50 Equal Weight Index Fund\n12. HDFC Banking & Financial Services Fund\n13. HDFC NIFTY 100 Equal Weight Index Fund\n14. HDFC NIFTY Next 50 Index Fund\n\n**🔶 HYBRID FUNDS (2):**\n15. HDFC Balanced Advantage Fund\n16. HDFC Multi Asset Active FoF\n\n**🔹 DEBT FUNDS (3):**\n17. HDFC Income Plus Arbitrage Active FoF\n18. HDFC Short Term Debt Fund\n19. HDFC Credit Risk Debt Fund\n\nWhich fund would you like to know about? I can explain fees, charges, taxation, returns, and more!",
+        "waitUserReply": false,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chat",
+      "typeVersion": 1,
+      "position": [
+        -14832,
+        2752
+      ],
+      "id": "d5c2438e-a5a2-431b-b460-1a643b380b8f",
+      "name": "Respond: Fund List"
+    },
+    {
+      "parameters": {
+        "message": "You're very welcome! Happy to help. 😊\n\nFeel free to ask if you have any more questions about HDFC funds - whether it's about fees, taxation, performance, or anything else. I'm here to make mutual fund information clear and accessible!",
+        "waitUserReply": false,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chat",
+      "typeVersion": 1,
+      "position": [
+        -14832,
+        2944
+      ],
+      "id": "9db4b0fd-bde3-489d-ae86-92b138bf323e",
+      "name": "Respond: Gratitude"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "c6b2e181-388f-409d-9d51-02b8de238448",
+              "leftValue": "={{ $json.needs_clarification }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -14832,
+        3136
+      ],
+      "id": "508a6db0-993c-4d95-a686-e95af95bf619",
+      "name": "IF: Needs Clarification?"
+    },
+    {
+      "parameters": {
+        "message": "={{ $json.clarification_question }}",
+        "waitUserReply": false,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chat",
+      "typeVersion": 1,
+      "position": [
+        -14608,
+        3040
+      ],
+      "id": "5d22fe53-71ba-4d39-acce-651f0c5934be",
+      "name": "Ask Clarification"
+    },
+    {
+      "parameters": {
+        "jsCode": "const intentData = $input.item.json;\n\nreturn {\n  json: {\n    query: intentData.original_query || '',\n    intent: intentData.intent || '',\n    fund_name: intentData.fund_name || '',\n    enhanced_query: intentData.original_query || ''\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -14608,
+        3232
+      ],
+      "id": "58c47c4b-3df9-46e6-bd84-eeaa0d7d259f",
+      "name": "Prepare for Preprocessing"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "AP8CtMTSHbJfyZGG",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/AP8CtMTSHbJfyZGG",
+          "cachedResultName": "Workflow 2: Preprocessing"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        -14384,
+        3232
+      ],
+      "id": "ce325f87-4a61-402c-86ba-faafa94d824e",
+      "name": "Call 'Workflow 2: Preprocessing'"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Existing inputs\nconst preprocessingData = $input.first().json;\nconst prepareData = $('Prepare for Preprocessing').first().json;\n\n// Existing computed fields\nconst context = preprocessingData.data || '';\nconst lastChecked =\n  preprocessingData.last_checked ||\n  new Date().toISOString().split('T')[0];\n\n// Resolve SINGLE source_url (fund > preprocessing)\nconst sourceUrl =\n  preprocessingData.fund?.source_url ||\n  preprocessingData.source_url ||\n  '';\n\n// Build full fund object (NO source_url inside fund anymore)\nconst fund = preprocessingData.fund\n  ? {\n      name: preprocessingData.fund.name || '',\n      category: preprocessingData.fund.category\n        ? `${preprocessingData.fund.category}${\n            preprocessingData.fund.sub_category\n              ? ' - ' + preprocessingData.fund.sub_category\n              : ''\n          }`\n        : '',\n      risk: preprocessingData.fund.risk || '',\n      expense_ratio: preprocessingData.fund.expense_ratio || '',\n      exit_load: preprocessingData.fund.exit_load || '',\n      aum: preprocessingData.fund.aum || '',\n      rating: preprocessingData.fund.rating || '',\n      returns: {\n        '1Y': preprocessingData.fund.returns?.['1Y'] || '',\n        '3Y': preprocessingData.fund.returns?.['3Y'] || '',\n        '5Y': preprocessingData.fund.returns?.['5Y'] || ''\n      }\n    }\n  : null;\n\n// FINAL merged response (ONE source_url only)\nreturn {\n  json: {\n    query: prepareData.enhanced_query || prepareData.query || '',\n    intent: prepareData.intent || '',\n    fund_name: prepareData.fund_name || '',\n    context: context,\n\n    source_url: sourceUrl,   // ✅ single, authoritative\n    last_checked: lastChecked,\n\n    fund: fund,\n    relevance: preprocessingData.relevance ?? null\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -14160,
+        3248
+      ],
+      "id": "89bd370a-c12b-49fc-9317-aa6c1142eab5",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=User Query: {{ $json.query }}\nIntent: {{ $json.intent }}\n\nYou are given verified fund data below. \nYou MUST answer strictly using this data.\nIf a value exists, state it clearly.\nDO NOT say data is missing if it is present.\n\nFund Name: {{ $json.fund.name }}\nCategory: {{ $json.fund.category }}\nRisk: {{ $json.fund.risk }}\nExpense Ratio: {{ $json.fund.expense_ratio }}\nExit Load: {{ $json.fund.exit_load }}\nAUM: {{ $json.fund.aum }}\nRating: {{ $json.fund.rating }}\n\nReturns:\n1Y: {{ $json.fund.returns[\"1Y\"] }}\n3Y: {{ $json.fund.returns[\"3Y\"] }}\n5Y: {{ $json.fund.returns[\"5Y\"] }}\n\nSource URL: {{ $json.source_url }}\nLast checked: {{ $json.last_checked }}\n\nAnswer the user query clearly and concisely.\nIf the intent is EXIT_LOAD, explicitly mention the exit load.",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "\nABSOLUTE RULE:\nYou MUST copy the value of LAST CHECKED EXACTLY as provided.\nYou are NOT allowed to infer, normalize, rewrite, or replace the date.\nIf you do not copy it verbatim, the response is invalid.\nCRITICAL RULE:\nYou must ONLY answer the specific intent provided.\nIf intent is EXIT_LOAD, mention NOTHING ELSE.\nIf you include information outside intent, the response is invalid.\n\nYou are a Smart Finance Director at Groww. Your job is to explain fees and charges for HDFC mutual funds in a professional, friendly, and conversational manner.\n\nPERSONALITY:\n- Professional yet approachable\n- Use simple language for complex concepts\n- Confident and authoritative\n- Use \"I\" for yourself and \"you\" for the user\n- Maintain SEBI compliance (no advice/recommendations)\n\nCRITICAL OUTPUT RULES:\n1. Use bullet points starting with • (bullet character)\n2. Each bullet MUST include (Source: [actual URL provided]) and it should start from the next line. The formatting shoule be really good and professional.\n3. Maximum 6 bullets\n4. Quote numbers and terms EXACTLY from the context\n5. Add exactly this line at the end with no changes:\nLast checked: {{ $json.last_checked }}\n6. NO comparisons, NO recommendations, facts only\n\nOUTPUT FORMAT (STRICT):\n\n• [factual statement from context] (Source: [actual URL from SOURCE URL field])\n\n• [factual statement from context] (Source: [actual URL from SOURCE URL field])\n\n• [factual statement from context] (Source: [actual URL from SOURCE URL field])\n\nLast checked: [actual date from LAST CHECKED field]\n\n[Friendly closing question]\n\nIMPORTANT:\n- Extract the actual URL from the SOURCE URL field provided\n- Extract the actual date from the LAST CHECKED field provided\n- Use the • character (not * or -) for bullets\n- Include (Source: URL) after EVERY bullet point in which fund related question is answered. In case an informational or generic question is answered dont provide source url.\n- If the source URL for each bullet point is same only give one same URL\n\nGenerate your response based on the user query and context data provided."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        -13936,
+        3232
+      ],
+      "id": "9b013c4e-4fe6-4a8d-b312-f5e37915f523",
+      "name": "AI Agent2"
+    },
+    {
+      "parameters": {
+        "jsCode": "const answer = $input.item.json.output || $input.item.json.response || '';\nconst contextData = $('Code in JavaScript').item.json;\nconst intentData = $('Parse Intent Response').item.json;\n\nconst bullets = answer\n  .split('\\n')\n  .filter(line => line.trim().startsWith('•'))\n  .map(line => {\n    const urlMatch = line.match(/\\(Source:\\s*([^\\)]+)\\)/);\n    const citationUrl = urlMatch ? urlMatch[1].trim() : (contextData.source_url || '');\n    const text = line.replace(/\\(Source:[^\\)]+\\)/, '').replace('•', '').trim();\n    return {\n      text: text,\n      citation_url: citationUrl\n    };\n  })\n  .slice(0, 6);\n\nconst lastCheckedMatch = answer.match(/Last checked:\\s*([^\\n]+)/i);\nconst lastChecked = lastCheckedMatch ? lastCheckedMatch[1].trim() : contextData.last_checked;\n\nconst sourcesUsed = [...new Set(bullets.map(b => b.citation_url).filter(Boolean))];\n\nreturn {\n  json: {\n    bullets: bullets,\n    last_checked: lastChecked,\n    full_answer: answer,\n    sources_used: sourcesUsed,\n    intent: intentData.intent,\n    fund_name: intentData.fund_name,\n    user_id: 'anonymous'\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -13584,
+        3232
+      ],
+      "id": "b2b7e50b-f931-4276-8842-7e99dbad2270",
+      "name": "Parse Answer"
+    },
+    {
+      "parameters": {
+        "jsCode": "const answerData = $input.item.json;\n\nconsole.log('Format Answer - Input:', JSON.stringify(answerData, null, 2));\n\n// Safely handle bullets array\nconst bullets = Array.isArray(answerData.bullets) ? answerData.bullets : [];\n\nconsole.log('Bullets count:', bullets.length);\n\nif (bullets.length === 0) {\n  console.warn('No bullets found! Using full_answer instead');\n  return {\n    json: {\n      ...answerData,\n      formatted_answer: answerData.full_answer || 'No answer available'\n    }\n  };\n}\n\nconst formattedBullets = bullets\n  .map((b, i) => {\n    const text = b.text || '';\n    const url = b.citation_url || '';\n    return `• ${text} (Source: ${url})`;\n  })\n  .join('\\n');\n\nconst formattedAnswer = `${formattedBullets}\n\nLast checked: ${answerData.last_checked || new Date().toISOString().split('T')[0]}\n\nWould you like me to save this explanation and draft a support email? (Reply 'yes' to proceed)`;\n\nconsole.log('Formatted answer length:', formattedAnswer.length);\n\nreturn {\n  json: {\n    bullets: bullets,\n    last_checked: answerData.last_checked,\n    full_answer: answerData.full_answer,\n    sources_used: answerData.sources_used || [],\n    intent: answerData.intent,\n    fund_name: answerData.fund_name,\n    user_id: answerData.user_id,\n    formatted_answer: formattedAnswer\n  }\n};\n\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -13360,
+        3232
+      ],
+      "id": "0bb92fbf-b181-437e-9ed9-e3911aac8c80",
+      "name": "Format Answer"
+    },
+    {
+      "parameters": {
+        "message": "={{ $json.formatted_answer }}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chat",
+      "typeVersion": 1,
+      "position": [
+        -13136,
+        3232
+      ],
+      "id": "69f24730-68f1-445b-95c6-3d5af8d02bad",
+      "name": "Send Answer & Request Approval"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "8f93f626-7f45-41ad-a8f3-7504188d8a19",
+              "leftValue": "={{ $json.chatInput }}",
+              "rightValue": "yes",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "6ed21ae5-1d90-4995-9301-504da4669304",
+              "leftValue": "=={{ $('Format Answer').item.json.formatted_answer }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -12912,
+        3232
+      ],
+      "id": "a7781fd9-7b67-4085-bfaf-9026cdadc9ee",
+      "name": "IF: User Approved?"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Core answer data\nconst answerData = $('Parse Answer').item.json;\nconst formatData = $('Format Answer').item.json;\nconst intentData = $('Parse Intent Response').item.json;\n\n// Session + chat context (IMPORTANT)\nconst chatNode = $('When chat message received').item.json;\nconst approvalNode = $('IF: User Approved?').item.json;\n\n// Resolve session & queries\nconst session_id = chatNode.sessionId || approvalNode.sessionId || '';\nconst current_query = intentData.original_query || chatNode.chatInput || '';\n\n// OPTIONAL: full query history (if you have memory node)\nconst query_history =\n  answerData.query_history ||\n  [current_query];\n\n// Final MCP payload\nreturn {\n  json: {\n    // 🔐 Audit identifiers\n    session_id,\n    user_id: answerData.user_id || 'anonymous',\n\n    // 🔍 Queries\n    query: current_query,\n    query_history,\n\n    // 🎯 Answer metadata\n    scenario: answerData.intent,\n    fund_name: answerData.fund_name,\n    sources: answerData.sources_used || [],\n    source_url: answerData.source_url || '',\n\n    // 📝 Answer content\n    bullets: answerData.bullets || [],\n    full_answer:\n      formatData.formatted_answer ||\n      answerData.full_answer ||\n      '',\n\n    // ⏱ Audit timing\n    last_checked:\n      answerData.last_checked ||\n      new Date().toISOString().split('T')[0]\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -12480,
+        3136
+      ],
+      "id": "37994351-b856-43f0-9d01-aadc5f765339",
+      "name": "Prepare MCP Data"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "NoHnXSVJpNJJhsyh",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/NoHnXSVJpNJJhsyh",
+          "cachedResultName": "Workflow 3: MCP Actions"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        -12048,
+        3120
+      ],
+      "id": "c2fc20c9-1224-495c-bf9b-38a5ce2923fa",
+      "name": "Call 'Workflow 3: MCP Actions'"
+    },
+    {
+      "parameters": {
+        "model": "moonshotai/kimi-k2-instruct",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        -15568,
+        3072
+      ],
+      "id": "d2c207ee-d7ab-4ca8-9f8a-f65ad6182632",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "VBI00IM5R6Up56FN",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You are a compliance checker for a Smart Finance Director Agent at Groww that follows SEBI guidelines.\n\nYour job is to check if a user query is compliant. Return ONLY valid JSON (no markdown):\n\n{\n  \"compliant\": true/false,\n  \"violation_type\": \"COMPARISON\" | \"ADVICE\" | \"PERFORMANCE\" | \"HYPOTHETICAL\" | \"PII\" | \"OUT_OF_SCOPE\" | null,\n  \"reason\": \"Brief explanation\",\n  \"suggested_response\": \"Regulatory message if non-compliant\",\n  \"original_query\": \"the user's query\"\n}\n\nCONVERSATIONAL QUERIES (compliant = true, violation_type = null):\n- Greetings: \"hi\", \"hello\", \"hey\"\n- Fund list: \"which funds\", \"list funds\"\n- Gratitude: \"thank you\", \"thanks\"\n\nALLOWED TOPICS (compliant = true):\n- Exit load, taxation, SIP charges, expense ratios, lock-in periods\n- Returns/performance (with disclaimers)\n- Fund ratings, AUM, NAV, categories\n\nFORBIDDEN TOPICS (compliant = false):\n- COMPARISON: Comparing funds, \"which is better\"\n- ADVICE: \"should I invest\", recommendations\n- HYPOTHETICAL: \"what if\" scenarios\n- PII: PAN, Aadhar, passwords\n- OUT_OF_SCOPE: Non-fund queries\n\nAnalyze the query and respond with the JSON object."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        -16432,
+        2704
+      ],
+      "id": "d45552b0-b4ad-4e74-8117-107a3de2f177",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "jsCode": "const text = $input.item.json.output || $input.item.json.response || '';\nlet parsed;\n\ntry {\n  const jsonMatch = text.match(/\\{[\\s\\S]*\\}/);\n  if (jsonMatch) {\n    parsed = JSON.parse(jsonMatch[0]);\n  } else {\n    parsed = JSON.parse(text);\n  }\n} catch (e) {\n  return {\n    json: {\n      compliant: true,\n      violation_type: null,\n      reason: 'Failed to parse compliance check - defaulting to compliant',\n      suggested_response: '',\n      original_query: $('When chat message received').item.json.chatInput\n    }\n  };\n}\n\nif (parsed.compliant === false && (!parsed.violation_type || !parsed.suggested_response)) {\n  return {\n    json: {\n      compliant: true,\n      violation_type: null,\n      reason: 'Incomplete compliance response - defaulting to compliant',\n      suggested_response: '',\n      original_query: $('When chat message received').item.json.chatInput\n    }\n  };\n}\n\nreturn {\n  json: {\n    compliant: parsed.compliant !== false,\n    violation_type: parsed.violation_type || null,\n    reason: parsed.reason || '',\n    suggested_response: parsed.suggested_response || '',\n    original_query: parsed.original_query || $('When chat message received').item.json.chatInput\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -16080,
+        2704
+      ],
+      "id": "75599692-9828-4f0b-a30b-82c21866f10f",
+      "name": "Output Parser"
+    },
+    {
+      "parameters": {
+        "model": "moonshotai/kimi-k2-instruct",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        -16432,
+        2928
+      ],
+      "id": "6c8b52a8-74e6-4d96-8083-fc8e484b108b",
+      "name": "Groq Chat Model1",
+      "credentials": {
+        "groqApi": {
+          "id": "VBI00IM5R6Up56FN",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "message": "✅ Perfect! I'm saving this to your notes and drafting a support email now...",
+        "waitUserReply": false,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chat",
+      "typeVersion": 1,
+      "position": [
+        -12256,
+        3136
+      ],
+      "id": "d626e202-1ec9-43f6-b1df-bb89dc43c14a",
+      "name": "Respond to Chat2",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -13904,
+        3440
+      ],
+      "id": "3341c5f1-c509-40b0-97d8-7bac2f59eadb",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "V669ExHK6oTj8FH4",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If complaint": {
+      "main": [
+        [
+          {
+            "node": "Respond to Chat",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent2",
+            "type": "ai_memory",
+            "index": 0
+          },
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          },
+          {
+            "node": "AI Agent1",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent1": {
+      "main": [
+        [
+          {
+            "node": "Parse Intent Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Intent Response": {
+      "main": [
+        [
+          {
+            "node": "Route by Intent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Intent": {
+      "main": [
+        [
+          {
+            "node": "Respond: Greeting",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: Fund List",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: Gratitude",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "IF: Needs Clarification?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF: Needs Clarification?": {
+      "main": [
+        [
+          {
+            "node": "Ask Clarification",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare for Preprocessing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare for Preprocessing": {
+      "main": [
+        [
+          {
+            "node": "Call 'Workflow 2: Preprocessing'",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call 'Workflow 2: Preprocessing'": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "AI Agent2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent2": {
+      "main": [
+        [
+          {
+            "node": "Parse Answer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Answer": {
+      "main": [
+        [
+          {
+            "node": "Format Answer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Answer": {
+      "main": [
+        [
+          {
+            "node": "Send Answer & Request Approval",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Answer & Request Approval": {
+      "main": [
+        [
+          {
+            "node": "IF: User Approved?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF: User Approved?": {
+      "main": [
+        [
+          {
+            "node": "Prepare MCP Data",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Output Parser",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Output Parser": {
+      "main": [
+        [
+          {
+            "node": "If complaint",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare MCP Data": {
+      "main": [
+        [
+          {
+            "node": "Respond to Chat2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond to Chat2": {
+      "main": [
+        [
+          {
+            "node": "Call 'Workflow 3: MCP Actions'",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent2",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "90674444-53ff-4d82-a1b6-771fce7bfe88",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f06d86e7b0b6468b1270c7be3d70fa18b6d91689622f7098e41e714af439c163"
+  },
+  "id": "IP4qWBouX4ksgXEu",
+  "tags": []
+}

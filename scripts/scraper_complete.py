@@ -135,7 +135,7 @@ def main():
         driver.quit()
     
     # Save results
-    with open('complete_fund_data.json', 'w') as f:
+    with open('data/complete_fund_data.json', 'w') as f:
         json.dump(results, f, indent=2)
     
     print(f"\n✅ Scraped {len(results)} funds")

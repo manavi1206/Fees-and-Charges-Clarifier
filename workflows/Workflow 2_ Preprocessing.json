@@ -1,0 +1,230 @@
+{
+  "name": "Workflow 2: Preprocessing",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "f08348e7-dda3-402d-add4-f9b4a1befbe7",
+      "name": "Execute Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract input parameters from Execute Workflow Trigger\nconst inputData = $input.item.json;\n\nconst query = inputData.query || inputData.enhanced_query || '';\nconst intent = inputData.intent || '';\nconst fundName = inputData.fund_name || '';\n\n// Build search query combining all information\nconst searchQuery = `${intent} ${fundName} ${query}`.trim();\n\nreturn {\n  json: {\n    query: query,\n    intent: intent,\n    fund_name: fundName,\n    enhanced_query: inputData.enhanced_query || query,\n    search_query: searchQuery\n  }\n};"
+      },
+      "id": "3d147ee6-1d69-4d20-aada-60f20ee6b522",
+      "name": "Extract Input Parameters",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://generativelanguage.googleapis.com/v1/models/text-embedding-004:embedContent?key=AIzaSyDIXRjgctybCWCCNRINIupbSZSD7ILs7nQ",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "content",
+              "value": "={{ {\"parts\": [{\"text\": $json.search_query}]} }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "1e7185f4-4cac-4194-85a4-d8febd337875",
+      "name": "Generate Embedding",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        448,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract embedding from Gemini response\nconst response = $input.item.json;\nconst embedding = response.embedding?.values || [];\n\nif (!embedding || embedding.length === 0) {\n  throw new Error('Failed to generate embedding');\n}\n\nconst inputData = $('Extract Input Parameters').item.json;\n\nreturn {\n  json: {\n    ...inputData,\n    embedding: embedding\n  }\n};"
+      },
+      "id": "2808be11-5c54-4bbd-8418-de57c1f2fd19",
+      "name": "Extract Embedding",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://fees-explainer-2znm61p.svc.aped-4627-b74a.pinecone.io/query",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Api-Key",
+              "value": "=pcsk_6zqhGY_8iWUvrG6RwhWYHC2aW6i7D3EqtUdCiKvxZcaqY925oFtoMiXbuE4GMYShTeVEEf"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "vector",
+              "value": "={{ $json.embedding }}"
+            },
+            {
+              "name": "topK",
+              "value": "=3"
+            },
+            {
+              "name": "includeMetadata",
+              "value": "=true"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "1a56263c-052f-4dec-a771-dbe385769936",
+      "name": "Query Pinecone",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const matches = items[0].json.matches || [];\n\nif (matches.length === 0) {\n  return [\n    {\n      json: {\n        success: false,\n        message: \"No confident fund information found.\",\n        context: null\n      }\n    }\n  ];\n}\n\nconst best = matches[0];\nconst m = best.metadata;\n\nreturn [\n  {\n    json: {\n      success: true,\n      fund: {\n        name: m.fund_name,\n        category: `${m.category} - ${m.sub_category}`,\n        risk: m.risk_level,\n        expense_ratio: m.expense_ratio,\n        exit_load: m.exit_load,\n        aum: m.aum,\n        rating: m.rating,\n        returns: {\n          \"1Y\": m.returns_1y,\n          \"3Y\": m.returns_3y,\n          \"5Y\": m.returns_5y\n        },\n        source_url: m.page_url\n      },\n      relevance: best.score\n    }\n  }\n];"
+      },
+      "id": "a4dcd69c-a3cc-45f5-9065-4f09a95e41ee",
+      "name": "Parse Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1312,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Filter + rank Pinecone matches (PRODUCTION SAFE)\n\nconst response = items[0].json;\nconst matches = response?.matches ?? [];\n\n// Step 1: Remove invalid / junk vectors\nconst cleanMatches = matches.filter(m =>\n  m &&\n  typeof m.score === 'number' &&\n  m.score >= 0.6 &&                       // relevance threshold\n  m.metadata &&\n  typeof m.metadata === 'object' &&\n  m.metadata.fund_name &&\n  m.metadata.page_url\n);\n\n// Step 2: Rank matches\n// Priority: higher similarity → richer metadata\ncleanMatches.sort((a, b) => {\n  const scoreDiff = b.score - a.score;\n  if (scoreDiff !== 0) return scoreDiff;\n\n  const aMetaCount = Object.keys(a.metadata).length;\n  const bMetaCount = Object.keys(b.metadata).length;\n  return bMetaCount - aMetaCount;\n});\n\n// Step 3: Return cleaned Pinecone response (shape preserved)\nreturn [\n  {\n    json: {\n      ...response,\n      matches: cleanMatches\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1088,
+        0
+      ],
+      "id": "17b380fa-b3db-47b7-b142-e79b844c6b8c",
+      "name": "Filter Matches"
+    }
+  ],
+  "pinData": {
+    "Execute Workflow Trigger": [
+      {
+        "json": {
+          "query": "HDFC NIFTY Next 50 Index Fund",
+          "intent": "FUND_INFO",
+          "fund_name": "HDFC NIFTY Next 50 Index Fund",
+          "enhanced_query": "HDFC NIFTY Next 50 Index Fund"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Extract Input Parameters",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Input Parameters": {
+      "main": [
+        [
+          {
+            "node": "Generate Embedding",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Embedding": {
+      "main": [
+        [
+          {
+            "node": "Extract Embedding",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Embedding": {
+      "main": [
+        [
+          {
+            "node": "Query Pinecone",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Pinecone": {
+      "main": [
+        [
+          {
+            "node": "Filter Matches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Matches": {
+      "main": [
+        [
+          {
+            "node": "Parse Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "7083763e-9514-4291-944e-33c9b2013225",
+  "meta": {
+    "instanceId": "f06d86e7b0b6468b1270c7be3d70fa18b6d91689622f7098e41e714af439c163"
+  },
+  "id": "AP8CtMTSHbJfyZGG",
+  "tags": []
+}

@@ -44,23 +44,23 @@ jobs:
       
       - name: Run scraper
         run: |
-          python3 scraper_complete.py
+          python3 scripts/scraper_complete.py
       
       - name: Run enhancer
         run: |
-          python3 enhance_fund_data.py
+          python3 scripts/enhance_fund_data.py
       
       - name: Upload enhanced data as artifact
         uses: actions/upload-artifact@v4
         with:
           name: enhanced_fund_data
-          path: enhanced_fund_data.json
+          path: data/enhanced_fund_data.json
           retention-days: 7
       
       - name: Commit and push if changed
         run: |
           git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
-          git add enhanced_fund_data.json
+          git add data/enhanced_fund_data.json
           if ! git diff --staged --quiet; then
             git commit -m "Update enhanced fund data [skip ci]"
             git push origin main

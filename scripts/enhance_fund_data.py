@@ -43,7 +43,7 @@ def main():
     print("🔧 Enhancing fund data with improved extraction...\n")
     
     # Load existing data
-    with open('complete_fund_data.json', 'r') as f:
+    with open('data/complete_fund_data.json', 'r') as f:
         funds = json.load(f)
     
     enhanced_funds = []
@@ -73,7 +73,7 @@ def main():
         print(f"  ✅ NAV: {nav}, 3Y: {returns.get('3y', 'N/A')}, Managers: {len(managers)}")
     
     # Save
-    with open('enhanced_fund_data.json', 'w') as f:
+    with open('data/enhanced_fund_data.json', 'w') as f:
         json.dump(enhanced_funds, f, indent=2)
     
     print(f"\n✅ Enhanced {len(enhanced_funds)} funds")

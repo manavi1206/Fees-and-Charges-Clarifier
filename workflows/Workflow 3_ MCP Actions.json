@@ -1,0 +1,521 @@
+{
+  "name": "Workflow 3: MCP Actions",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "ca60936c-9dd6-4b4b-b8d1-5128d4435ced",
+      "name": "Execute Workflow Trigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1088,
+        -48
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===============================\n// INPUT\n// ===============================\nconst input = $input.first().json;\n\n// Core fields\nconst scenario = input.scenario || 'GENERAL';\nconst fundName = input.fund_name || 'Multiple HDFC funds';\nconst userId = input.user_id || 'anonymous';\nconst query = input.query || 'No query provided';\nconst queryHistory = input.query_history || [];\nconst bullets = input.bullets || [];\nconst sources = input.sources || [];\nconst fullAnswer = input.full_answer || 'No answer available';\nconst lastChecked =\n  input.last_checked || new Date().toISOString().split('T')[0];\n\n// ===============================\n// SCENARIO NAME MAPPING\n// ===============================\nconst scenarioNames = {\n  EXIT_LOAD: 'Exit Load',\n  EXPENSE_RATIO: 'Expense Ratio',\n  SIP_CHARGES: 'SIP Charges',\n  TAXATION: 'Taxation',\n  LOCK_IN_PERIOD: 'Lock-in Period',\n  RETURNS: 'Returns',\n  FUND_RATING: 'Fund Rating',\n  AUM: 'Fund Size (AUM)',\n  FUND_INFO: 'Fund Information',\n  NAV: 'NAV',\n  GENERAL: 'General Inquiry'\n};\n\nconst scenarioName = scenarioNames[scenario] || scenario;\n\n// ===============================\n// QUERY CONTEXT SUMMARY (KEY ADD)\n// ===============================\nlet queryContextSummary = '';\n\nif (queryHistory.length === 0) {\n  queryContextSummary = 'No prior conversation context available.';\n} else if (queryHistory.length === 1) {\n  queryContextSummary = `The user asked about \"${queryHistory[0]}\".`;\n} else {\n  queryContextSummary =\n    `The user initially asked about \"${queryHistory[0]}\" ` +\n    `and then clarified with \"${queryHistory.slice(1).join(' → ')}\".`;\n}\n\n// ===============================\n// EMAIL SUBJECT\n// ===============================\nconst emailSubject = `Client Inquiry: ${scenarioName} – ${fundName}`;\n\n// ===============================\n// EMAIL BODY (HTML)\n// ===============================\nconst emailBody = `\n<!DOCTYPE html>\n<html>\n<body style=\"font-family: Arial, sans-serif; background:#f5f5f5; padding:20px;\">\n  <table width=\"600\" align=\"center\" style=\"background:#ffffff; border-radius:8px; padding:24px;\">\n    \n    <tr>\n      <td>\n        <h2 style=\"margin:0;color:#333;\">Client Inquiry Summary</h2>\n        <p style=\"color:#777;font-size:13px;\">Smart Finance Director • Automated Record</p>\n      </td>\n    </tr>\n\n    <tr><td style=\"padding-top:16px;\">\n      <strong>Fund:</strong> ${fundName}<br/>\n      <strong>Category:</strong> ${scenarioName}<br/>\n      <strong>User:</strong> ${userId}<br/>\n      <strong>Last Checked:</strong> ${lastChecked}\n    </td></tr>\n\n    <tr><td style=\"padding-top:16px;\">\n      <h3 style=\"margin-bottom:6px;\">Conversation Context</h3>\n      <p style=\"margin:0;color:#444;\">${queryContextSummary}</p>\n    </td></tr>\n\n    <tr><td style=\"padding-top:16px;\">\n      <h3 style=\"margin-bottom:6px;\">Latest User Query</h3>\n      <p style=\"margin:0;font-style:italic;\">\"${query}\"</p>\n    </td></tr>\n\n    <tr><td style=\"padding-top:16px;\">\n      <h3 style=\"margin-bottom:6px;\">Answer Provided</h3>\n      <div style=\"background:#fafafa;border:1px solid #ddd;padding:12px;white-space:pre-wrap;\">\n${fullAnswer}\n      </div>\n    </td></tr>\n\n    ${bullets.length ? `\n    <tr><td style=\"padding-top:16px;\">\n      <h3 style=\"margin-bottom:6px;\">Key Facts (with Sources)</h3>\n      ${bullets.map((b, i) => `\n        <p style=\"margin:8px 0;\">\n          ${i + 1}. ${b.text}<br/>\n          <a href=\"${b.citation_url}\" style=\"font-size:12px;color:#3366cc;\">\n            Source\n          </a>\n        </p>\n      `).join('')}\n    </td></tr>` : ''}\n\n    ${sources.length ? `\n    <tr><td style=\"padding-top:16px;\">\n      <h3 style=\"margin-bottom:6px;\">References</h3>\n      <ul style=\"padding-left:18px;\">\n        ${sources.map(s => `<li><a href=\"${s}\">${s}</a></li>`).join('')}\n      </ul>\n    </td></tr>` : ''}\n\n    <tr><td style=\"padding-top:24px;color:#999;font-size:11px;\">\n      This is an automated, compliance-oriented record. Please verify before client communication.\n    </td></tr>\n\n  </table>\n</body>\n</html>\n`;\n\n// ===============================\n// NOTES / GOOGLE DOC CONTENT\n// ===============================\nconst numberedBullets = bullets\n  .map((b, i) => `${i + 1}. ${b.text}\\n   Source: ${b.citation_url}`)\n  .join('\\n\\n');\n\nconst notesContent = `\n${scenarioName} Inquiry – ${fundName}\n\nConversation Context:\n${queryContextSummary}\n\nQuery History:\n${queryHistory.map((q, i) => `${i + 1}. ${q}`).join('\\n')}\n\nLatest Query:\n\"${query}\"\n\nAnswer Provided:\n${fullAnswer}\n\nKey Facts:\n${numberedBullets}\n\nSources:\n${sources.map(s => `- ${s}`).join('\\n')}\n\nLast checked: ${lastChecked}\n`.trim();\n\n// ===============================\n// FINAL OUTPUT (USED BY ALL BRANCHES)\n// ===============================\nreturn {\n  json: {\n    // core\n    scenario,\n    scenario_name: scenarioName,\n    fund_name: fundName,\n    user_id: userId,\n\n    // query context\n    query,\n    query_history: queryHistory,\n    query_context_summary: queryContextSummary,\n\n    // content\n    bullets,\n    sources,\n    full_answer: fullAnswer,\n\n    // email\n    email_subject: emailSubject,\n    email_body: emailBody,\n\n    // docs / notes\n    notes_content: notesContent,\n\n    // audit\n    last_checked: lastChecked,\n    timestamp: new Date().toISOString(),\n    date: new Date().toISOString().split('T')[0],\n\n    // config\n    email_recipient: 'manavi.singh.mec19@itbhu.ac.in'\n  }\n};"
+      },
+      "id": "771bc76c-b527-48b3-bb17-10b50126e2a2",
+      "name": "Format Content",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -864,
+        -48
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===============================\n// INPUT FROM FORMAT CONTENT\n// ===============================\nconst input = $input.first().json;\n\n// ===============================\n// SAFE DEFAULTS\n// ===============================\nconst sessionId = input.session_id || 'unknown_session';\nconst userId = input.user_id || 'anonymous';\n\nconst query = input.query || '';\nconst queryHistory = input.query_history || [];\nconst queryContextSummary = input.query_context_summary || '';\n\nconst scenario = input.scenario || 'GENERAL';\nconst scenarioName = input.scenario_name || scenario;\nconst fundName = input.fund_name || 'Multiple funds';\n\nconst bullets = input.bullets || [];\nconst sources = input.sources || [];\n\nconst timestamp = input.timestamp || new Date().toISOString();\nconst date = input.date || new Date().toISOString().split('T')[0];\nconst lastChecked = input.last_checked || date;\n\n// ===============================\n// DERIVED / NORMALIZED FIELDS\n// ===============================\n\n// Short bullet preview for sheet readability\nconst bulletPreview = bullets\n  .map(b => b.text)\n  .join(' | ')\n  .substring(0, 500);\n\n// Sources as pipe-separated string\nconst sourcesList = sources.join(' | ');\n\n// Query history as readable string\nconst queryHistoryStr = queryHistory.join(' → ');\n\n// Flags for downstream actions\nconst emailCreated = Boolean(input.email_body);\nconst docUpdated = Boolean(input.notes_content);\n\n// ===============================\n// FINAL AUDIT ROW (FLAT STRUCTURE)\n// ===============================\nconst auditRow = {\n  // 🔑 Identity & traceability\n  session_id: sessionId,\n  user_id: userId,\n\n  // ⏱ Timing\n  timestamp,\n  date,\n  last_checked: lastChecked,\n\n  // 🔍 Query context\n  query,\n  query_history: queryHistoryStr,\n  query_context_summary: queryContextSummary,\n\n  // 🎯 Intent & domain\n  scenario,\n  scenario_name: scenarioName,\n  fund_name: fundName,\n\n  // 📌 Answer characteristics\n  bullet_count: bullets.length,\n  bullet_preview: bulletPreview,\n  sources_count: sources.length,\n  sources: sourcesList,\n\n  // 🧠 Actions executed\n  email_created: emailCreated ? 'Yes' : 'No',\n  document_updated: docUpdated ? 'Yes' : 'No',\n  audit_logged: 'Yes',\n\n  // 🏷 System metadata\n  action_type: 'SMART_FINANCE_MCP_EXECUTION',\n  system: 'Smart Finance Director',\n  channel: 'Chat'\n};\n\n// ===============================\n// OUTPUT\n// ===============================\nreturn {\n  json: auditRow\n};"
+      },
+      "id": "5c3a9865-bcf8-4c10-a37b-d40af0b3202f",
+      "name": "Prepare Audit Row",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -640,
+        -240
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "126_TFdK0ywNJW_LZILfSccXSoeiBUonlVpH7kZVJ7vo",
+          "mode": "list",
+          "cachedResultName": "Test",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/126_TFdK0ywNJW_LZILfSccXSoeiBUonlVpH7kZVJ7vo/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/126_TFdK0ywNJW_LZILfSccXSoeiBUonlVpH7kZVJ7vo/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "timestamp": "={{ $json.timestamp }}",
+            "date": "={{ $json.date }}",
+            "query": "={{ $json.query }}",
+            "scenario": "={{ $json.scenario }}",
+            "action_type": "={{ $json.action_type }}",
+            "scenario_name": "={{ $json.scenario_name }}",
+            "fund_name": "={{ $json.fund_name }}",
+            "sources_count": "={{ $json.sources_count }}",
+            "email_created": "={{ $json.email_created }}",
+            "audit_logged": "={{ $json.audit_logged }}",
+            "session_id": "={{ $json.session_id }}",
+            "user_id": "={{ $json.user_id }}",
+            "last_checked": "={{ $json.last_checked }}",
+            "query_history": "={{ $json.query_history }}",
+            "query_context_summary": "={{ $json.query_context_summary }}",
+            "bullet_count": "={{ $json.bullet_count }}",
+            "bullet_preview": "={{ $json.bullet_preview }}",
+            "sources": "={{ $json.sources }}",
+            "document_updated": "={{ $json.document_updated }}",
+            "system": "={{ $json.system }}",
+            "channel": "={{ $json.channel }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "session_id",
+              "displayName": "session_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "user_id",
+              "displayName": "user_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "timestamp",
+              "displayName": "timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "date",
+              "displayName": "date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "last_checked",
+              "displayName": "last_checked",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "query",
+              "displayName": "query",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "query_history",
+              "displayName": "query_history",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "query_context_summary",
+              "displayName": "query_context_summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "scenario",
+              "displayName": "scenario",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "scenario_name",
+              "displayName": "scenario_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "fund_name",
+              "displayName": "fund_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "bullet_count",
+              "displayName": "bullet_count",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "bullet_preview",
+              "displayName": "bullet_preview",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "sources_count",
+              "displayName": "sources_count",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "sources",
+              "displayName": "sources",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "email_created",
+              "displayName": "email_created",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "document_updated",
+              "displayName": "document_updated",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "audit_logged",
+              "displayName": "audit_logged",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "action_type",
+              "displayName": "action_type",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "system",
+              "displayName": "system",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "channel",
+              "displayName": "channel",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "6e3d3c81-cfb9-4f7a-988c-bb795b0a0e25",
+      "name": "Log Audit to Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.4,
+      "position": [
+        -416,
+        -240
+      ],
+      "note": "Replace YOUR_GOOGLE_SHEETS_SPREADSHEET_ID with your actual Google Sheets spreadsheet ID. Get it from the spreadsheet URL: https://docs.google.com/spreadsheets/d/SPREADSHEET_ID/edit. Create a sheet named 'Audit Log' with header row: timestamp, actor, action_type, scenario, fund_name, sources_count, prompt_version",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "XDbLQcAS2DZ9gllC",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "/**\n * FINAL COLLECT RESULTS NODE\n * Source of truth: INPUT JSON ONLY\n */\n\n// ---------- Helper ----------\nconst normalizeBool = (v) =>\n  v === true || v === 'true' || v === 'Yes' || v === 'yes';\n\n// ---------- Input ----------\nconst input = $input.item.json || {};\n\n// ---------- Normalize inputs ----------\nconst notesSaved = normalizeBool(\n  input.notes_saved ?? input.notes_created\n);\n\nconst emailDrafted = normalizeBool(\n  input.email_drafted ?? input.email_created\n);\n\nconst auditLogged = normalizeBool(\n  input.audit_logged\n);\n\n// ---------- Status calculation ----------\nlet status;\n\nif (emailDrafted && auditLogged) {\n  status = 'success';\n} else if (emailDrafted || auditLogged || notesSaved) {\n  status = 'partial';\n} else {\n  status = 'failed';\n}\n\n// ---------- Metadata ----------\nconst scenario = input.scenario || 'GENERAL';\nconst fund_name = input.fund_name || 'Multiple HDFC funds';\n\n// ---------- User message ----------\nlet userMessage;\n\nif (status === 'success') {\n  userMessage = '✅ Actions completed! Email drafted and audit logged.';\n} else if (status === 'partial') {\n  userMessage = '⚠️ Actions partially completed. Some steps may have failed.';\n} else {\n  userMessage = '❌ Unable to complete requested actions. Please try again.';\n}\n\n// ---------- FINAL OUTPUT ----------\nreturn {\n  json: {\n    status,\n    notes_saved: notesSaved,\n    email_drafted: emailDrafted,\n    audit_logged: auditLogged,\n    scenario,\n    fund_name,\n    timestamp: new Date().toISOString(),\n    user_message: userMessage\n  }\n};"
+      },
+      "id": "9faf9ba0-e63e-479d-bd0f-28c77ecb1c16",
+      "name": "Collect Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        32,
+        -48
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "manavi.singh.mec19@itbhu.ac.in",
+        "subject": "={{ $json.email_subject }}",
+        "message": "=={{ $json.email_body }}",
+        "options": {}
+      },
+      "id": "c2a525cb-2449-4e3b-9908-4ec659e808f8",
+      "name": "Send Mail",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -416,
+        -48
+      ],
+      "note": "Optional: Requires Gmail OAuth2 credentials. If not configured, this will be skipped.",
+      "webhookId": "3abba195-0f37-402e-9744-49fcc6b6148e",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "xPYtnajIuvbaSMyv",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "numberInputs": 3,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -192,
+        -64
+      ],
+      "id": "2df0201f-4c21-4852-b23a-7d3bc47858bc",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentURL": "https://docs.google.com/document/d/1S8yJIGVKCrrJTp1XLLp5a1-QRJfHPNkdCNg6B8Qcv60/edit?tab=t.0",
+        "actionsUi": {
+          "actionFields": [
+            {
+              "action": "insert",
+              "text": "={{ $json.document_text }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.googleDocs",
+      "typeVersion": 2,
+      "position": [
+        -416,
+        144
+      ],
+      "id": "1bdddbae-8e14-44bb-9bc7-a3578069a381",
+      "name": "Update a document",
+      "credentials": {
+        "googleDocsOAuth2Api": {
+          "id": "2iyeuIaLWYdrsYd8",
+          "name": "Google Docs account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\n\nconst docSection = `\n────────────────────────────────────\n📌 Case Summary\n────────────────────────────────────\nSession ID: ${input.session_id || 'N/A'}\nDate: ${input.date}\nUser ID: ${input.user_id}\nScenario: ${input.scenario_name}\nFund: ${input.fund_name}\n\n🧠 Conversation Context\n${input.query_context_summary}\n\n🔍 Query History\n${(input.query_history || []).map((q, i) => `${i + 1}. ${q}`).join('\\n')}\n\n💬 Answer Shared with User\n${input.full_answer}\n\n📎 Sources\n${(input.sources || []).map(s => `- ${s}`).join('\\n')}\n\n⏱ Last Checked\n${input.last_checked}\n────────────────────────────────────\n\n`;\n\nreturn {\n  json: {\n    document_text: docSection\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -640,
+        144
+      ],
+      "id": "86bda427-5c84-4c3b-a211-50d6e30aeafa",
+      "name": "Code in JavaScript"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Execute Workflow Trigger": {
+      "main": [
+        [
+          {
+            "node": "Format Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Content": {
+      "main": [
+        [
+          {
+            "node": "Prepare Audit Row",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send Mail",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Audit Row": {
+      "main": [
+        [
+          {
+            "node": "Log Audit to Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Audit to Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Mail": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Collect Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update a document": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Update a document",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "922c10bb-d1b9-457f-b3dc-7ab35782ad19",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "f06d86e7b0b6468b1270c7be3d70fa18b6d91689622f7098e41e714af439c163"
+  },
+  "id": "NoHnXSVJpNJJhsyh",
+  "tags": []
+}

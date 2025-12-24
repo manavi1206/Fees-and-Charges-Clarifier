@@ -1,0 +1,349 @@
+{
+  "name": "Workflow 4: Daily Scraping",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 2
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        3840,
+        128
+      ],
+      "id": "f70f5f23-4038-46b4-ad8d-be28695d1ebd",
+      "name": "Schedule Trigger (2 AM Daily)"
+    },
+    {
+      "parameters": {
+        "url": "https://raw.githubusercontent.com/manavi1206/Fees-and-Charges-Clarifier/main/enhanced_fund_data.json",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "n8n-workflow"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        4288,
+        128
+      ],
+      "id": "f9b89f8d-d143-4fb7-aa01-6b97b9eeb179",
+      "name": "Download from GitHub"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Process all fund items from input\nconst items = $input.all();\n\nconsole.log('Received items:', items.length);\n\n// Transform each fund item and filter out invalid ones\nconst validItems = items\n  .map((item, index) => {\n    const fund = item.json;\n\n    // Skip if fund_name is missing or empty\n    if (!fund.fund_name || fund.fund_name.trim() === '') {\n      console.log(`Skipping item ${index + 1}: Missing fund_name`);\n      return null;\n    }\n\n    const document_text = `Fund: ${fund.fund_name || 'Unknown'}\nCategory: ${fund.category || 'Unknown'} - ${fund.sub_category || ''}\nExit Load: ${fund.exit_load || 'Not specified'}\nExpense Ratio: ${fund.expense_ratio || 'Not specified'}\nMinimum SIP: ${fund.min_investment?.sip || 'Not specified'}\nLock-in: ${fund.lock_in_period || 'None'}\nReturns 1Y: ${fund.returns?.['1y'] || 'N/A'}\nReturns 3Y: ${fund.returns?.['3y'] || 'N/A'}\nReturns 5Y: ${fund.returns?.['5y'] || 'N/A'}\nRating: ${fund.rating || 'Not rated'}\nAUM: ${fund.aum || 'Not specified'}\nNAV: ${fund.latest_nav || 'Not specified'}\nRisk: ${fund.risk_level || 'Not specified'}\nSource: ${fund.page_url || ''}`;\n\n    // Skip if document_text is empty or too short (less than 50 characters)\n    if (!document_text || document_text.trim().length < 50) {\n      console.log(`Skipping item ${index + 1}: Invalid or empty document_text`);\n      return null;\n    }\n\n    return {\n      json: {\n        fund_id: `hdfc-fund-${index + 1}`,\n        fund_name: fund.fund_name || 'Unknown',\n        document_text: document_text,\n        metadata: {\n          fund_name: String(fund.fund_name || 'Unknown'),\n          category: String(fund.category || 'Unknown'),\n          sub_category: String(fund.sub_category || ''),\n          exit_load: String(fund.exit_load || 'Not specified'),\n          expense_ratio: String(fund.expense_ratio || 'Not specified'),\n          min_sip: String(fund.min_investment?.sip || 'Not specified'),\n          min_lumpsum: String(fund.min_investment?.lump_sum || 'Not specified'),\n          lock_in_period: String(fund.lock_in_period || 'None'),\n          returns_1y: String(fund.returns?.['1y'] || 'N/A'),\n          returns_3y: String(fund.returns?.['3y'] || 'N/A'),\n          returns_5y: String(fund.returns?.['5y'] || 'N/A'),\n          rating: String(fund.rating || 'Not rated'),\n          aum: String(fund.aum || 'Not specified'),\n          nav: String(fund.latest_nav || 'Not specified'),\n          risk_level: String(fund.risk_level || 'Not specified'),\n          page_url: String(fund.page_url || '')\n        }\n      }\n    };\n  })\n  .filter(item => item !== null); // Remove null items\n\nconsole.log(`Valid items after filtering: ${validItems.length}`);\n\nreturn validItems;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4512,
+        128
+      ],
+      "id": "0ea4a781-d468-4a33-ab3a-2a0e7d6befa3",
+      "name": "Parse Funds"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://fees-explainer-2znm61p.svc.aped-4627-b74a.pinecone.io/vectors/delete",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Api-Key",
+              "value": "pcsk_6zqhGY_8iWUvrG6RwhWYHC2aW6i7D3EqtUdCiKvxZcaqY925oFtoMiXbuE4GMYShTeVEEf"
+            },
+            {
+              "name": "X-Pinecone-Api-Version",
+              "value": "2025-10"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "deleteAll",
+              "value": "true"
+            },
+            {
+              "name": "namespace",
+              "value": "example-namespace"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        4064,
+        128
+      ],
+      "id": "5f792ef5-141f-438a-9a5e-3e65986ce99f",
+      "name": "Delete Old Vectors",
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        4736,
+        128
+      ],
+      "id": "1dc1ab6c-da6a-4ab2-8e07-49af7c439073",
+      "name": "Loop Over Funds"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "key",
+              "value": "AIzaSyDIXRjgctybCWCCNRINIupbSZSD7ILs7nQ"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { \"content\": { \"parts\": [{ \"text\": ($json.document_text && $json.document_text.trim()) ? $json.document_text : \"No data available\" }] } } }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        4960,
+        48
+      ],
+      "id": "4fa1b519-d1c5-49b3-af06-cef39434bb51",
+      "name": "Generate Embedding"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://fees-explainer-2znm61p.svc.aped-4627-b74a.pinecone.io/vectors/upsert",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Api-Key",
+              "value": "pcsk_6zqhGY_8iWUvrG6RwhWYHC2aW6i7D3EqtUdCiKvxZcaqY925oFtoMiXbuE4GMYShTeVEEf"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "=json",
+        "bodyParameters": {
+          "parameters": [
+            {}
+          ]
+        },
+        "jsonBody": "={{ { \"vectors\": [{ \"id\": $json.id, \"values\": $json.values, \"metadata\": $json.metadata }] } }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        5408,
+        48
+      ],
+      "id": "2130c080-e745-4918-b15c-2e759d11855e",
+      "name": "Upload to Pinecone"
+    },
+    {
+      "parameters": {
+        "amount": 0.5
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        5632,
+        128
+      ],
+      "id": "1657bb4e-718c-44d9-975a-da2d5af2c651",
+      "name": "Wait (Rate Limit)",
+      "webhookId": "1f9583b7-dadc-495b-bd69-d3b9f4615787"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get all items from the workflow\nconst items = $input.all();\n\nreturn items.map((item) => {\n  // The embedding response from Generate Embedding\n  const embedding = item.json.embedding;\n  \n  // Get fund_id and metadata from Loop Over Funds node\n  const loopItem = $('Loop Over Funds').item.json;\n  const fund_id = loopItem.fund_id;\n  const metadata = loopItem.metadata;\n  \n  return {\n    json: {\n      id: fund_id,\n      values: embedding.values,\n      metadata: metadata\n    }\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5184,
+        48
+      ],
+      "id": "c853d29d-acfb-440a-99ae-ed15743640e2",
+      "name": "Prepare Pinecone Data"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger (2 AM Daily)": {
+      "main": [
+        [
+          {
+            "node": "Delete Old Vectors",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete Old Vectors": {
+      "main": [
+        [
+          {
+            "node": "Download from GitHub",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download from GitHub": {
+      "main": [
+        [
+          {
+            "node": "Parse Funds",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Funds": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Funds",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Funds": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Generate Embedding",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Embedding": {
+      "main": [
+        [
+          {
+            "node": "Prepare Pinecone Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload to Pinecone": {
+      "main": [
+        [
+          {
+            "node": "Wait (Rate Limit)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait (Rate Limit)": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Funds",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Pinecone Data": {
+      "main": [
+        [
+          {
+            "node": "Upload to Pinecone",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "9aaf2a22-925a-4dfd-bb68-3bd2c0099c4e",
+  "meta": {
+    "instanceId": "f06d86e7b0b6468b1270c7be3d70fa18b6d91689622f7098e41e714af439c163"
+  },
+  "id": "IumGzjyJQaexfAUj",
+  "tags": []
+}
